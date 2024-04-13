@@ -1,0 +1,78 @@
+#include <unistd.h>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+#include "led-matrix.h"
+
+// Define the font array
+const uint8_t font[] = {
+    // Add pixel data for characters here...
+};
+
+// Function to draw a character at a specified position on the LED panel
+void drawCharacter(int row, int col, char c, RGBMatrix *matrix) {
+    const int charWidth = 8; // Width of each character in pixels
+
+    // Get the ASCII value of the character and calculate its index in the font array
+    int charIndex = c - '!';
+
+    // Calculate the offset in the font array for the specified character
+    const uint8_t *charData = &font[charIndex * charWidth];
+
+    // Iterate over each column of the character
+    for (int i = 0; i < charWidth; ++i) {
+        uint8_t rowData = charData[i];
+
+        // Iterate over each row (bit) of the character
+        for (int j = 0; j < 8; ++j) {
+            // Check if the current bit is set (pixel is on)
+            if (rowData & (1 << j)) {
+                // Set the pixel color to white (you may adjust the color as needed)
+                matrix->SetPixel(row + j, col + i, 255, 255, 255);
+            }
+        }
+    }
+}
+
+int main() {
+    // Create an instance of the RGBMatrix class
+    RGBMatrix::Options options;
+    options.hardware_mapping = "regular"; // Use the default hardware mapping
+    options.rows = 32;
+    options.cols = 64;
+    options.chain_length = 1;
+    options.parallel = 1;
+    options.pwm_bits = 11;
+    options.brightness = 100;
+    options.pwm_lsb_nanoseconds = 130;
+
+    RGBMatrix *matrix = RGBMatrix::CreateFromOptions(options);
+
+    // Check if matrix creation was successful
+    if (matrix == nullptr) {
+        std::cerr << "Error: Unable to create RGBMatrix object." << std::endl;
+        return 1;
+    }
+
+    // Draw some text on the LED panel
+    const std::string text = "Hello, World!";
+    int x = 0; // Starting column position
+
+    for (char c : text) {
+        // Draw each character at the current position
+        drawCharacter(0, x, c, matrix);
+        // Move to the next position (advance by the width of the character)
+        x += 8;
+    }
+
+    // Refresh the display
+    matrix->Refresh();
+
+    // Wait for a while
+    sleep(10);
+
+    // Clean up resources
+    delete matrix;
+
+    return 0;
+}
